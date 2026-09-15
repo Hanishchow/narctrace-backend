@@ -1,0 +1,25 @@
+{
+  "profile_id": "SIM-PROFILE-ALPHA",
+  "name": "Simulated Reagent Alpha (Purple Proxy Assay)",
+  "version": "1.0-simulated",
+  "is_simulated": true,
+  "disclaimer": "SIMULATED / PROXY FIELD-TEST KIT ONLY. NOT A VALIDATED NARCOTIC TEST. DO NOT USE FOR REAL SUBSTANCE IDENTIFICATION.",
+  "reaction_type": "spot_test_colorimetric_proxy",
+  "timing_seconds": 30,
+  "targets": {
+    "positive": {
+      "label": "Simulated Reaction Positive (Purple Proxy)",
+      "target_lab": [52.4, 14.6, -7.7],
+      "max_delta_e": 14.0
+    },
+    "negative": {
+      "label": "Simulated Reaction Negative (Pale Amber Proxy)",
+      "target_lab": [80.5, -2.1, 34.2],
+      "max_delta_e": 12.0
+    }
+  },
+  "inconclusive_threshold": {
+    "ambiguity_margin": 5.0,
+    "max_acceptable_delta_e": 25.0
+  }
+}

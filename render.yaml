@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: narctrace-backend
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -k uvicorn.workers.UvicornWorker -w 2 -b 0.0.0.0:$PORT app.main:app
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.10.11"
+      - key: CORS_ORIGINS
+        sync: false
+      - key: STORE_BACKEND
+        value: insforge
+      - key: INSFORGE_API_URL
+        sync: false
+      - key: INSFORGE_SERVICE_KEY
+        sync: false
+      - key: INSFORGE_EVIDENCE_BUCKET
+        value: evidence
+      - key: APP_VERSION
+        value: "0.1.0"

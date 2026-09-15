@@ -1,0 +1,25 @@
+{
+  "profile_id": "SIM-PROFILE-BETA",
+  "name": "Simulated Reagent Beta (Cobalt Blue Proxy Assay)",
+  "version": "1.0-simulated",
+  "is_simulated": true,
+  "disclaimer": "SIMULATED / PROXY FIELD-TEST KIT ONLY. NOT A VALIDATED NARCOTIC TEST. DO NOT USE FOR REAL SUBSTANCE IDENTIFICATION.",
+  "reaction_type": "spot_test_colorimetric_proxy",
+  "timing_seconds": 45,
+  "targets": {
+    "positive": {
+      "label": "Simulated Reaction Positive (Cobalt Blue Proxy)",
+      "target_lab": [61.1, -3.2, -23.8],
+      "max_delta_e": 15.0
+    },
+    "negative": {
+      "label": "Simulated Reaction Negative (Neutral Clear Proxy)",
+      "target_lab": [90.2, -0.6, 5.8],
+      "max_delta_e": 12.0
+    }
+  },
+  "inconclusive_threshold": {
+    "ambiguity_margin": 5.0,
+    "max_acceptable_delta_e": 25.0
+  }
+}
