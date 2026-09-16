@@ -24,11 +24,15 @@ app = FastAPI(
     ),
 )
 
-# CORS restricted to configured origins (never '*').
+# CORS. Set CORS_ORIGINS="*" to allow any origin (safe here: auth is via Bearer
+# token in the Authorization header, not cookies, so credentials aren't needed —
+# and browsers forbid combining "*" with allow_credentials=True).
+_origins = settings.cors_origins_list
+_allow_all = "*" in _origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
-    allow_credentials=True,
+    allow_origins=["*"] if _allow_all else _origins,
+    allow_credentials=not _allow_all,
     allow_methods=["*"],
     allow_headers=["*"],
 )

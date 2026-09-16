@@ -12,7 +12,7 @@ services:
       # Allowed browser origins. Includes the GitHub Pages site + local dev.
       # Add any custom domain here later.
       - key: CORS_ORIGINS
-        value: "https://hanishchow.github.io,http://localhost:5173"
+        value: "*"
       # Starts on the local SQLite/filesystem store so the first deploy boots with
       # zero external creds. Switch to "insforge" once INSFORGE_* keys are set below.
       # NOTE: Render free tier has an ephemeral disk — local history resets on redeploy;

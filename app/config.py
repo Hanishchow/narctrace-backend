@@ -12,10 +12,9 @@ class Settings(BaseSettings):
 
     # --- Port sync contract ---
     PORT: int = 8000
-    # Allowed browser origins. Defaults cover local dev + the live GitHub Pages
-    # site (which reaches this backend through a localtunnel/ngrok tunnel).
-    # Override via the CORS_ORIGINS env var / .env for other deploys.
-    CORS_ORIGINS: str = "http://localhost:5173,https://hanishchow.github.io"
+    # Allowed browser origins. "*" allows any origin (fine here — Bearer-token
+    # auth, no cookies). Set a comma-separated allowlist to lock it down.
+    CORS_ORIGINS: str = "*"
 
     # --- App ---
     APP_VERSION: str = "0.1.0"
