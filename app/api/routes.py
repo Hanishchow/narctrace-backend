@@ -7,6 +7,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import Response
 
+from app.analytics import compute_summary
 from app.config import get_settings
 from app.constants import STANDARD_DISCLAIMER
 from app.engine import list_available_profiles, get_kit_profile
@@ -143,6 +144,19 @@ def history(
     except StoreError as e:
         raise HTTPException(status_code=502, detail=f"History read error: {e}")
     return HistoryListResponse(success=True, count=len(records), records=records)
+
+
+@router.get("/analytics/summary")
+def analytics_summary(
+    _token: str = Depends(require_bearer),
+    store: Store = Depends(store_dep),
+) -> dict:
+    """Presentation-ready aggregate stats over all evidence records (PRD v2 Track C)."""
+    try:
+        records = store.search_records(limit=1_000_000)
+    except StoreError as e:
+        raise HTTPException(status_code=502, detail=f"Analytics read error: {e}")
+    return compute_summary(records)
 
 
 @router.get("/history/{test_id}", response_model=HistoryRecordResponse)
