@@ -183,6 +183,13 @@ def detect_prototype_card(
             best_blue_score = blue_cnt
             best_warped = cand
 
+    # A rectangle alone is not a reference card. The fallback path may use a
+    # tightly cropped image, so require the documented blue orientation patch
+    # before treating the image as calibrated evidence.
+    min_fiducial_pixels = max(25, int(canonical_w * canonical_h * 0.001))
+    if best_blue_score < min_fiducial_pixels:
+        return DetectedCard(found=False)
+
     warped = best_warped
 
     # 5. Extract observed patch RGBs from normalized relative coordinates

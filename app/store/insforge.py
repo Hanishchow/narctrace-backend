@@ -20,6 +20,8 @@ import requests
 
 from app.models import EvidenceRecord
 from app.store.base import Store, AuthResult, StoreError
+from app.config import get_settings
+from app.passport import canonical_manifest, sign_manifest
 
 _TIMEOUT = 20
 
@@ -118,6 +120,17 @@ class InsforgeStore(Store):
         try:
             resp = requests.post(self._db_url(), headers=self._headers(), json=payload, timeout=_TIMEOUT)
             resp.raise_for_status()
+            manifest = canonical_manifest(record.to_dict())
+            manifest_response = requests.post(
+                f"{self.api_url}/database/records/evidence_manifests",
+                headers=self._headers(),
+                json={
+                    "id": str(uuid.uuid4()), "test_id": record.test_id, "manifest": manifest,
+                    "signature": sign_manifest(manifest, get_settings().EVIDENCE_SIGNING_KEY),
+                },
+                timeout=_TIMEOUT,
+            )
+            manifest_response.raise_for_status()
         except Exception as e:  # pragma: no cover
             raise StoreError(f"InsForge save_record failed: {e}") from e
 
@@ -150,6 +163,21 @@ class InsforgeStore(Store):
             raise StoreError(f"InsForge get_record failed: {e}") from e
         if isinstance(rows, list) and rows:
             return self._row_to_record_dict(rows[0])
+        return None
+
+    def get_evidence_manifest(self, test_id: str) -> Optional[Dict[str, str]]:
+        try:
+            response = requests.get(
+                f"{self.api_url}/database/records/evidence_manifests",
+                headers=self._headers(), params={"test_id": f"eq.{test_id}", "limit": 1}, timeout=_TIMEOUT,
+            )
+            response.raise_for_status()
+            rows = response.json()
+            if isinstance(rows, list) and rows:
+                row = rows[0]
+                return {"manifest": row["manifest"], "signature": row["signature"]}
+        except Exception as e:  # pragma: no cover - provider integration
+            raise StoreError(f"InsForge evidence passport lookup failed: {e}") from e
         return None
 
     def search_records(
@@ -202,3 +230,69 @@ class InsforgeStore(Store):
                 "badge_id": badge_id,
             },
         )
+
+    def actor_from_token(self, token: str) -> Optional[Dict[str, Any]]:
+        """Validate a user token through the provider's current-user endpoint.
+
+        InsForge endpoint conventions are configured in this adapter and should be
+        smoke-tested against the target project before a pilot deployment.
+        """
+        try:
+            response = requests.get(
+                f"{self.api_url}/auth/user",
+                headers={"Authorization": f"Bearer {token}"},
+                timeout=_TIMEOUT,
+            )
+            if response.status_code != 200:
+                return None
+            payload = response.json() or {}
+            user = payload.get("user", payload)
+            user_id = user.get("id")
+            if not user_id:
+                return None
+            badge_id = user.get("badge_id") or user.get("email") or str(user_id)
+            return {
+                "id": str(user_id),
+                "name": user.get("name") or user.get("email") or str(user_id),
+                "badge_id": str(badge_id),
+            }
+        except Exception:
+            return None
+
+    def claim_idempotency(self, key: str, payload_hash: str, test_id: str) -> Dict[str, Any]:
+        """Use the provider table `idempotency_receipts` for retry-safe submits."""
+        table_url = f"{self.api_url}/database/records/idempotency_receipts"
+        try:
+            existing = requests.get(
+                table_url, headers=self._headers(), params={"key": f"eq.{key}", "limit": 1}, timeout=_TIMEOUT
+            )
+            existing.raise_for_status()
+            rows = existing.json()
+            if isinstance(rows, list) and rows:
+                row = rows[0]
+                return {
+                    "created": False,
+                    "payload_hash": row.get("payload_hash"),
+                    "test_id": row.get("test_id"),
+                    "status": row.get("status", "pending"),
+                }
+            created = requests.post(
+                table_url,
+                headers=self._headers(),
+                json={"id": str(uuid.uuid4()), "key": key, "payload_hash": payload_hash, "test_id": test_id, "status": "pending"},
+                timeout=_TIMEOUT,
+            )
+            created.raise_for_status()
+            return {"created": True, "payload_hash": payload_hash, "test_id": test_id, "status": "pending"}
+        except Exception as e:  # pragma: no cover - provider integration
+            raise StoreError(f"InsForge idempotency receipt failed: {e}") from e
+
+    def finalize_idempotency(self, key: str) -> None:
+        table_url = f"{self.api_url}/database/records/idempotency_receipts"
+        try:
+            response = requests.patch(
+                table_url, headers=self._headers(), params={"key": f"eq.{key}"}, json={"status": "accepted"}, timeout=_TIMEOUT
+            )
+            response.raise_for_status()
+        except Exception as e:  # pragma: no cover - provider integration
+            raise StoreError(f"InsForge idempotency finalization failed: {e}") from e

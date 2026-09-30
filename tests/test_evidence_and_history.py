@@ -9,6 +9,7 @@ from app.evidence import (
 )
 from app.engine import get_kit_profile
 from app.models import QualityReport, ColorMetrics
+from app.passport import canonical_manifest, custody_event_hash, sign_manifest, verify_manifest
 
 SAMPLE = b"SIMULATED_TEST_IMAGE_BYTES_123456"
 EXPECTED = hashlib.sha256(SAMPLE).hexdigest()
@@ -27,6 +28,24 @@ def test_sha256_computation_and_integrity():
     assert compute_image_sha256(SAMPLE) == EXPECTED
     assert verify_image_integrity(SAMPLE, EXPECTED)
     assert not verify_image_integrity(b"tampered", EXPECTED)
+
+
+def test_evidence_passport_signature_detects_changed_manifest():
+    manifest = canonical_manifest({
+        "test_id": "FT-00001", "operator_id": "OFFICER-1", "result": "Positive",
+        "profile_id": "SIM-PROFILE-ALPHA", "timestamp_utc": "2026-01-01T00:00:00Z",
+        "image_sha256": EXPECTED, "color": {"hex": "#123456"}, "quality": {"passed": True},
+    })
+    signature = sign_manifest(manifest, "test-key")
+    assert verify_manifest(manifest, signature, "test-key")
+    assert not verify_manifest(manifest + "changed", signature, "test-key")
+
+
+def test_custody_event_hash_links_prior_event():
+    first = custody_event_hash("case-1", 1, "created", "officer-1", "2026-01-01T00:00:00Z", "", "test-key")
+    second = custody_event_hash("case-1", 2, "submit", "officer-1", "2026-01-01T00:01:00Z", first, "test-key")
+    assert second != first
+    assert second != custody_event_hash("case-1", 2, "submit", "officer-1", "2026-01-01T00:01:00Z", "", "test-key")
 
 
 def test_test_id_format():
@@ -78,3 +97,5 @@ def test_local_store_persist_and_search(local_store):
 def test_local_store_auth_stub(local_store):
     auth = local_store.authenticate("BADGE-7", "pw")
     assert auth.token and auth.officer["badge_id"] == "BADGE-7"
+    assert local_store.actor_from_token(auth.token)["badge_id"] == "BADGE-7"
+    assert local_store.actor_from_token("not-a-token") is None

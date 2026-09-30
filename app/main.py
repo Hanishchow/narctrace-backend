@@ -29,10 +29,11 @@ app = FastAPI(
 # and browsers forbid combining "*" with allow_credentials=True).
 _origins = settings.cors_origins_list
 _allow_all = "*" in _origins
+_allow_credentials = settings.CORS_ALLOW_CREDENTIALS and not _allow_all
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"] if _allow_all else _origins,
-    allow_credentials=not _allow_all,
+    allow_credentials=_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )

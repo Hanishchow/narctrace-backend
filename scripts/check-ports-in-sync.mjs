@@ -30,15 +30,22 @@ const fe = parse(feFile);
 
 const bePort = be.PORT;                                   // e.g. 8000
 const feApi = fe.VITE_API_BASE || "";                     // e.g. http://localhost:8000
-const feApiPort = (feApi.match(/:(\d+)/) || [])[1];       // 8000
+let feApiUrl;
+try {
+  feApiUrl = new URL(feApi);
+} catch {
+  feApiUrl = null;
+}
+const feApiPort = feApiUrl?.port || (feApiUrl?.protocol === "https:" ? "443" : "80");
 const corsOrigins = (be.CORS_ORIGINS || "").split(",").map((s) => s.trim());
 
 const errors = [];
 if (!bePort) errors.push("backend PORT missing");
 if (!feApi) errors.push("frontend VITE_API_BASE missing");
+if (feApi && !feApiUrl) errors.push("frontend VITE_API_BASE must be a complete URL");
 if (bePort && feApiPort && bePort !== feApiPort)
   errors.push(`port mismatch: backend PORT=${bePort} but frontend targets :${feApiPort}`);
-if (!corsOrigins.includes("http://localhost:5173"))
+if (!corsOrigins.includes("*") && !corsOrigins.includes("http://localhost:5173"))
   errors.push("backend CORS_ORIGINS must include the frontend dev origin http://localhost:5173");
 
 if (errors.length) {

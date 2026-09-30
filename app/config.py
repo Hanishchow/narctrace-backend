@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     # Allowed browser origins. "*" allows any origin (fine here — Bearer-token
     # auth, no cookies). Set a comma-separated allowlist to lock it down.
     CORS_ORIGINS: str = "*"
+    # Demo mode deliberately leaves CORS open. It uses bearer headers, never cookies.
+    CORS_ALLOW_CREDENTIALS: bool = False
+    MAX_UPLOAD_BYTES: int = 10 * 1024 * 1024
+    # Replace in pilot/production; this default is suitable only for local simulated data.
+    EVIDENCE_SIGNING_KEY: str = "local-demo-evidence-key"
 
     # --- App ---
     APP_VERSION: str = "0.1.0"

@@ -64,6 +64,13 @@ class EvidenceBlock(BaseModel):
     image_url: str
 
 
+class ExplanationBlock(BaseModel):
+    method: str
+    summary: str
+    pipeline_version: str
+    classification_rule: str
+
+
 class AnalysisResult(BaseModel):
     success: bool
     test_id: str
@@ -72,6 +79,7 @@ class AnalysisResult(BaseModel):
     color: ColorBlock
     profile: ProfileBlock
     evidence: EvidenceBlock
+    explanation: ExplanationBlock
     disclaimer: str
 
 
@@ -90,3 +98,19 @@ class HistoryListResponse(BaseModel):
 class HistoryRecordResponse(BaseModel):
     success: bool
     record: Optional[Dict[str, Any]] = None
+
+
+class CaseCreateRequest(BaseModel):
+    reference: str
+    title: str
+
+
+class CaseTransitionRequest(BaseModel):
+    action: str
+    expected_version: int
+
+
+class LabReportRequest(BaseModel):
+    laboratory: str
+    outcome: str
+    report_reference: str
