@@ -2,9 +2,13 @@
 Runtime configuration via pydantic-settings / environment. Nothing hard-coded.
 Port-sync contract values (PORT, CORS_ORIGINS) and InsForge secrets all come from env.
 """
+import os
+import sys
 from functools import lru_cache
 from typing import List
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_DEMO_SIGNING_KEY = "local-demo-evidence-key"
 
 
 class Settings(BaseSettings):
@@ -19,10 +23,15 @@ class Settings(BaseSettings):
     CORS_ALLOW_CREDENTIALS: bool = False
     MAX_UPLOAD_BYTES: int = 10 * 1024 * 1024
     # Replace in pilot/production; this default is suitable only for local simulated data.
-    EVIDENCE_SIGNING_KEY: str = "local-demo-evidence-key"
+    # PRODUCTION: set EVIDENCE_SIGNING_KEY to a strong random secret via your host's
+    # secret manager (never commit the value). The server will refuse to start in
+    # production while this is still the demo value.
+    EVIDENCE_SIGNING_KEY: str = _DEMO_SIGNING_KEY
 
     # --- App ---
     APP_VERSION: str = "0.1.0"
+    # Set NARCTRACE_ENV=production to enable production-mode guards (demo key refusal).
+    NARCTRACE_ENV: str = "development"
 
     # --- Persistence backend selection: "local" | "insforge" ---
     STORE_BACKEND: str = "local"
@@ -36,7 +45,29 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> List[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
+    @property
+    def is_production(self) -> bool:
+        return self.NARCTRACE_ENV.lower() == "production"
+
+
+def _validate_production_settings(settings: "Settings") -> None:
+    """Abort startup if unsafe defaults are used in production."""
+    if not settings.is_production:
+        return
+    errors: list[str] = []
+    if settings.EVIDENCE_SIGNING_KEY == _DEMO_SIGNING_KEY:
+        errors.append(
+            "EVIDENCE_SIGNING_KEY is still the public demo value. "
+            "Set a strong random secret via your host's secret manager before deploying."
+        )
+    if errors:
+        for msg in errors:
+            print(f"[narctrace] FATAL: {msg}", file=sys.stderr)
+        sys.exit(1)
+
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    s = Settings()
+    _validate_production_settings(s)
+    return s

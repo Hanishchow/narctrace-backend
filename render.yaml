@@ -7,12 +7,23 @@ services:
     startCommand: gunicorn -k uvicorn.workers.UvicornWorker -w 2 -b 0.0.0.0:$PORT app.main:app
     healthCheckPath: /api/health
     envVars:
+      # Pin to Python 3.11 — scikit-image 0.24.0 does not build on 3.14.
       - key: PYTHON_VERSION
-        value: "3.10.11"
-      # Allowed browser origins. Includes the GitHub Pages site + local dev.
-      # Add any custom domain here later.
+        value: "3.11.9"
+      # Allowed browser origins. Replace "*" with your deployed frontend URL
+      # (e.g. "https://hanishchow.github.io,https://your-domain.com") before
+      # public release.
       - key: CORS_ORIGINS
         value: "*"
+      # Production mode: enables startup guard that refuses to boot with demo defaults.
+      - key: NARCTRACE_ENV
+        value: production
+      # EVIDENCE_SIGNING_KEY — set this secret in the Render dashboard
+      # (Environment → Secret Files or Secret Env Vars). The server refuses
+      # to start in production until this is set to a non-demo value.
+      # Generate one with: python -c "import secrets; print(secrets.token_hex(32))"
+      - key: EVIDENCE_SIGNING_KEY
+        sync: false
       # Starts on the local SQLite/filesystem store so the first deploy boots with
       # zero external creds. Switch to "insforge" once INSFORGE_* keys are set below.
       # NOTE: Render free tier has an ephemeral disk — local history resets on redeploy;
