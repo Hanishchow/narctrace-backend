@@ -10,11 +10,10 @@ services:
       # Pin to Python 3.11 — scikit-image 0.24.0 does not build on 3.14.
       - key: PYTHON_VERSION
         value: "3.11.9"
-      # Allowed browser origins. Replace "*" with your deployed frontend URL
-      # (e.g. "https://hanishchow.github.io,https://your-domain.com") before
-      # public release.
+      # Allowed browser origins: GitHub Pages frontend + localhost dev.
+      # Add any custom domain here separated by commas.
       - key: CORS_ORIGINS
-        value: "*"
+        value: "https://hanishchow.github.io,http://localhost:5173"
       # Production mode: enables startup guard that refuses to boot with demo defaults.
       - key: NARCTRACE_ENV
         value: production
